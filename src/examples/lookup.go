@@ -1,4 +1,4 @@
-package Example
+package examples
 
 import (
 	"crypto/rand"

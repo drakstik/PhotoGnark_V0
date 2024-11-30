@@ -10,7 +10,7 @@ type FrImage struct {
 
 // This SetPixel function packs the pixel before setting it at the location (x=col, y=row) in the img,
 // where (0,0) is top left corner.
-func (img *FrImage) SetPixel(col int, row int, pixel RGBPixel) {
+func (img *FrImage) SetPixel(col int, row int, pixel Pixel) {
 	// Flatten the 2D location into a 1D index.
 	idx := row*N + col
 

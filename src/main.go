@@ -1,8 +1,6 @@
 package main
 
-import (
-	ex "src/examples"
-)
+import ex "src/examples"
 
 func main() {
 
@@ -11,5 +9,9 @@ func main() {
 
 	/* End of Gnark Examples */
 
-	ex.CropExample()
+	// ex.CropExample(0, 0, image.N-1, image.N-1)
+
+	// ex.NewCameraTakePicture("crop")
+
+	ex.TakeAndVerifyPictures("crop")
 }
