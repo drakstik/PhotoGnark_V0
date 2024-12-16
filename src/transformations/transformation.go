@@ -10,7 +10,7 @@ import (
 )
 
 type Transformation interface {
-	Prove(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, error)
+	TransformAndProve(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, error)
 	Transform(image.Image) (image.Image, error)
 	GetType() string
 }

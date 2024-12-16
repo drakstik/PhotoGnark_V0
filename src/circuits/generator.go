@@ -27,6 +27,8 @@ func NewSecretKey() (signature.Signer, error) {
 		return nil, err
 	}
 
+	// fmt.Println(sk)
+
 	return sk, nil
 }
 

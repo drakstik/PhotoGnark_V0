@@ -1,8 +1,6 @@
 package circuits
 
 import (
-	"src/image"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/std/hash/mimc"
@@ -15,8 +13,6 @@ type IdentityCircuit struct {
 	PublicKey       eddsa.PublicKey   `gnark:",public"`
 	EdDSA_Signature eddsa.Signature   `gnark:",public"`
 	ImageBytes      frontend.Variable // FrImage as a Big Endian
-	FrImage_A       image.FrImage
-	FrImage_B       image.FrImage
 }
 
 func (circuit *IdentityCircuit) Define(api frontend.API) error {

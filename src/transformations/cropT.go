@@ -43,31 +43,30 @@ func (t CropT) Transform(img image.Image) (image.Image, error) {
 		return image.Image{}, fmt.Errorf("INVALID CROP DIMENSIONS: OUT OF N*N BOUNDS")
 	}
 
-	// Calculate the width and height of the cropped area
-	cropWidth := t.X1 - t.X0 + 1  // + 1 because indeces start at (0,0)
-	cropHeight := t.Y1 - t.Y0 + 1 // + 1 because indeces start at (0,0)
-
-	// Create a black pixel
-	blackPixel := image.Pixel{R: 0, G: 0, B: 0}
-
 	// Initialize the cropped image to be outputed
-	img_cropped := image.NewImage("")
+	img_cropped, err := image.NewImage("black")
+	if err != nil {
+		fmt.Println("Error while creating new image: " + err.Error())
+	}
 
 	// For each pixel
 	for row := 0; row < image.N; row++ {
 		for col := 0; col < image.N; col++ {
-
-			// Initialize pixels as black
-			img_cropped.SetPixel(col, row, blackPixel)
-
-			// If the pixel is within the cropping area and within the bounded area
-			if row < cropHeight && col < cropWidth && (t.Y0+row) < image.N && (t.X0+col) < image.N {
+			// If the pixel is within the cropping area
+			if col >= t.X0 && col <= t.X1 && row >= t.Y0 && row <= t.Y1 {
+				newCol := col - t.X0
+				newRow := row - t.Y0
+				newIdx := newRow*image.N + newCol
+				currentIdx := row*image.N + col
+				fmt.Println(col, row, newCol, newRow, newIdx, currentIdx)
 				// Set the pixel towards the top-left corner
-				img_cropped.SetPixel(col, row, img.GetPixel(col, row))
+				img_cropped.Pixels[newIdx] = img.GetPixel(col, row)
 			}
-
 		}
 	}
+
+	cropWidth := t.X0 - t.X1 + 1
+	cropHeight := t.Y0 - t.Y1 + 1
 
 	// Update the metadata to reflect the new width & height of the cropped area
 	img_cropped.Metadata["width"] = cropWidth
@@ -80,7 +79,7 @@ func (t CropT) GetType() string {
 	return "crop"
 }
 
-func (t CropT) NewCircuit(img image.Image, secretKey signature.Signer) (circuits.CropCircuit, error) {
+func (t CropT) NewCircuit(img image.Image, croppedImage image.Image, secretKey signature.Signer) (circuits.CropCircuit, error) {
 	digSig := img.Sign(secretKey) // Sign the image, get the Public and Secret Key
 
 	// Assign the PK & SK to their eddsa equivilant
@@ -99,7 +98,7 @@ func (t CropT) NewCircuit(img image.Image, secretKey signature.Signer) (circuits
 		EdDSA_Signature:   eddsa_digSig,
 		ImageBytes:        img.ToBigEndian(),
 		FrImage:           img.ToFrImage(),
-		Transformed_Image: img.ToFrImage(),
+		Transformed_Image: croppedImage.ToFrImage(),
 		Params: circuits.FrCropT{
 			N:  frontend.Variable(t.N),
 			X0: frontend.Variable(t.X0),
@@ -112,38 +111,44 @@ func (t CropT) NewCircuit(img image.Image, secretKey signature.Signer) (circuits
 	return circuit, nil
 }
 
-func (t CropT) Prove(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, error) {
-	// Create a new IdentityCircuit struct using the image_in and a secret key
-	circuit, err := t.NewCircuit(img, secretKey)
+func (t CropT) TransformAndProve(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, image.Image, error) {
+	// Transform the image
+	croppedImage, err := t.Transform(img)
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
+	}
+
+	// Create a new IdentityCircuit struct using the image_in and a secret key
+	circuit, err := t.NewCircuit(img, croppedImage, secretKey)
+	if err != nil {
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Create the secret witness from the circuit
 	secret_witness, err := frontend.NewWitness(&circuit, ecc.BN254.ScalarField())
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Set the security parameter and compile a constraint system (aka compliance_predicate)
 	compliance_predicate, err := frontend.Compile(security_parameter, r1cs.NewBuilder, &circuits.CropCircuit{})
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Prove the secret witness adheres to the compliance predicate, using the given proving key
 	pcd_proof, err := groth16.Prove(compliance_predicate, proving_key, secret_witness)
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Create a public witness
 	publicWitness, err := secret_witness.Public()
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	proof := circuits.Proof{PCD_Proof: pcd_proof, Signature: proof_in.Signature, Public_Witness: publicWitness}
 	// Return the proof, image, signature and public witness.
-	return proof, nil
+	return proof, croppedImage, nil
 }

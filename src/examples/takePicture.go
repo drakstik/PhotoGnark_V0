@@ -10,8 +10,9 @@ func NewCameraTakePicture(t string) {
 	cam, err := secureCamera.NewCamera()
 	if err != nil {
 		fmt.Println("Error: ", err)
+		return
 	}
-	// fmt.Println(cam)
+	fmt.Println(cam.IdKeys.SecKey)
 
 	// Take an image & generate a proof
 	err = cam.TakePicture("white", t)

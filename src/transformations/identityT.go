@@ -45,45 +45,43 @@ func (t IdentityT) NewCircuit(img image.Image, secretKey signature.Signer) (circ
 		PublicKey:       eddsa_PK,
 		EdDSA_Signature: eddsa_digSig,
 		ImageBytes:      img.ToBigEndian(),
-		FrImage_A:       img.ToFrImage(),
-		FrImage_B:       img.ToFrImage(),
 	}
 
 	return circuit, nil
 }
 
-func (t IdentityT) Prove(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, error) {
+func (t IdentityT) TransformAndProve(proving_key groth16.ProvingKey, secretKey signature.Signer, img image.Image, proof_in circuits.Proof, security_parameter *big.Int) (circuits.Proof, image.Image, error) {
 	// Create a new IdentityCircuit struct using the image_in and a secret key
 	circuit, err := t.NewCircuit(img, secretKey)
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Create the secret witness from the circuit
 	secret_witness, err := frontend.NewWitness(&circuit, ecc.BN254.ScalarField())
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Set the security parameter and compile a constraint system (aka compliance_predicate)
 	compliance_predicate, err := frontend.Compile(security_parameter, r1cs.NewBuilder, &circuits.IdentityCircuit{})
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Prove the secret witness adheres to the compliance predicate, using the given proving key
 	pcd_proof, err := groth16.Prove(compliance_predicate, proving_key, secret_witness)
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	// Create a public witness
 	publicWitness, err := secret_witness.Public()
 	if err != nil {
-		return circuits.Proof{}, err
+		return circuits.Proof{}, image.Image{}, err
 	}
 
 	proof := circuits.Proof{PCD_Proof: pcd_proof, Signature: proof_in.Signature, Public_Witness: publicWitness}
 	// Return the proof, image, signature and public witness.
-	return proof, nil
+	return proof, img, nil
 }

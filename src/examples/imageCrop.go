@@ -7,7 +7,12 @@ import (
 )
 
 func CropExample(x0, y0, x1, y1 int) {
-	img := image.NewImage("white")
+	img, err := image.NewImage("random")
+	if err != nil {
+		fmt.Println("Error while creating new image: " + err.Error())
+	}
+
+	img.PrintImage()
 
 	t := transformations.CropT{N: image.N, X0: x0, Y0: y0, X1: x1, Y1: y1}
 

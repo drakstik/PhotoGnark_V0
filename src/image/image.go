@@ -1,8 +1,10 @@
 package image
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark-crypto/hash"
@@ -11,7 +13,7 @@ import (
 
 const (
 	// The size of an image in pixels.
-	N = 16 // Remember an image will have N*N pixels
+	N = 8 // Remember an image will have N*N pixels
 )
 
 type Pixel struct {
@@ -26,7 +28,7 @@ type Image struct {
 }
 
 // Can create a "white" or "black" image
-func NewImage(flag string) Image {
+func NewImage(flag string) (Image, error) {
 	newImage := Image{
 		Pixels:   [N * N]Pixel{},
 		Metadata: make(map[string]interface{}),
@@ -41,13 +43,39 @@ func NewImage(flag string) Image {
 		for col := 0; col < N; col++ {
 			if flag == "black" {
 
+				// Translate the 2D location (x,y) into a 1D index.
+				idx := row*N + col
+
 				// Set pixels as black
-				newImage.SetPixel(col, row, blackPixel)
+				newImage.Pixels[idx] = blackPixel
 			}
 
 			if flag == "white" {
-				// Set pixels as white
-				newImage.SetPixel(col, row, whitePixel)
+				// Translate the 2D location (x,y) into a 1D index.
+				idx := row*N + col
+
+				// Set pixels as black
+				newImage.Pixels[idx] = whitePixel
+			}
+
+			if flag == "random" {
+				// Generate a random number between 0 and 255
+				n, err := rand.Int(rand.Reader, big.NewInt(256))
+				if err != nil {
+					return Image{}, err
+				}
+
+				// Convert the result to uint8
+				randomUint8 := uint8(n.Int64())
+
+				// Create a random pixel
+				randomPixel := Pixel{R: randomUint8, G: randomUint8, B: randomUint8}
+
+				// Translate the 2D location (x,y) into a 1D index.
+				idx := row*N + col
+
+				// Set pixels as randomPixel
+				newImage.Pixels[idx] = randomPixel
 			}
 		}
 	}
@@ -58,7 +86,7 @@ func NewImage(flag string) Image {
 	newImage.Metadata["height"] = N
 	newImage.Metadata["width"] = N
 
-	return newImage
+	return newImage, nil
 }
 
 // Pack the input pixel's R, G, B uint8 values into a single uint32
@@ -76,15 +104,6 @@ func (img Image) GetPixel(col, row int) Pixel {
 	idx := row*N + col
 
 	return img.Pixels[idx]
-}
-
-// Set the pixel at location (x,y),
-// where (x,y) is a pixel location in the 2D representation [N*N] array of pixels.
-func (img *Image) SetPixel(col int, row int, pixel Pixel) {
-	// Translate the 2D location (x,y) into a 1D index.
-	idx := row*N + col
-
-	img.Pixels[idx] = pixel
 }
 
 // PrintImage outputs the image in a 16x16 grid format.
@@ -158,8 +177,10 @@ func (img Image) Sign(secretKey signature.Signer) []byte {
 	// 3. Instantiate MIMC BN254 hash function, to be used in signing the image
 	hFunc := hash.MIMC_BN254.New()
 
+	img_big_endian := img.ToBigEndian()
+
 	// 4. Sign the image (must first turn the image into a Big Endian)
-	signature, err := secretKey.Sign(img.ToBigEndian(), hFunc)
+	signature, err := secretKey.Sign(img_big_endian, hFunc)
 	if err != nil {
 		fmt.Println("Error while signing image: " + err.Error())
 	}
