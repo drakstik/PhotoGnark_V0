@@ -12,9 +12,9 @@ func main() {
 	/* End of Gnark Examples */
 
 	// ex.CropExample(0, 0, image.N-1, image.N-1)
-	ex.CropExample(3, 2, 5, 3)
+	// ex.CropExample(1, 2, 2, 3)
 
 	// ex.NewCameraTakePicture("crop")
 
-	// ex.TakeAndVerifyPictures("identity")
+	ex.TakeAndVerifyPictures("random", "identity")
 }

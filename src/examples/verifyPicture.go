@@ -6,7 +6,7 @@ import (
 	"src/secureCamera"
 )
 
-func TakeAndVerifyPictures(t string) {
+func TakeAndVerifyPictures(flag string, t string) {
 	// Create a new camera
 	cam, err := secureCamera.NewCamera()
 	if err != nil {
@@ -15,7 +15,7 @@ func TakeAndVerifyPictures(t string) {
 	// fmt.Println(cam)
 
 	// Take an image & generate a proof
-	err = cam.TakePicture("white", t)
+	err = cam.TakePicture(flag, t)
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}

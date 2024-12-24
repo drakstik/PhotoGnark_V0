@@ -52,16 +52,23 @@ func (t CropT) Transform(img image.Image) (image.Image, error) {
 	// For each pixel
 	for row := 0; row < image.N; row++ {
 		for col := 0; col < image.N; col++ {
-			// If the pixel is within the cropping area
-			if col >= t.X0 && col <= t.X1 && row >= t.Y0 && row <= t.Y1 {
-				newCol := col - t.X0
-				newRow := row - t.Y0
-				newIdx := newRow*image.N + newCol
-				currentIdx := row*image.N + col
-				fmt.Println(col, row, newCol, newRow, newIdx, currentIdx)
-				// Set the pixel towards the top-left corner
-				img_cropped.Pixels[newIdx] = img.GetPixel(col, row)
-			}
+			// Get the current flat index
+			currentIdx := row*image.N + col
+
+			/* Determine which pixel index would be shifted to the current flat index */
+
+			// Get the target index from the current index
+			targetIdx := currentIdx + t.X0 + (image.N * t.Y0)
+
+			// Calculate target Row and Col from the target index
+			targetRow := targetIdx / image.N
+			targetCol := targetIdx % image.N
+
+			// If target Col and Row are within Crop Area
+			if targetCol >= t.X0 && targetRow >= t.Y0 && targetCol <= t.X1 && targetRow <= t.Y1 {
+				// Set current pixel to target pixel
+				img_cropped.Pixels[currentIdx] = img.Pixels[targetIdx]
+			} // else the pixel remains black.
 		}
 	}
 

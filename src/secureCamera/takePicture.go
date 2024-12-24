@@ -44,9 +44,11 @@ func (cam *SecureCamera) TakePicture(flag string, legalTransformation string) er
 		// Add the verifying and public keys.
 		proof.VK.VeriKey = cam.CropKeys.VeriKey.VeriKey
 		proof.VK.PublicKey = cam.IdKeys.VeriKey.PublicKey
+
 		// Save the image and proof on the camera.
 		cam.Pictures = append(cam.Pictures, img)
 		cam.Proofs = append(cam.Proofs, proof)
+
 	} else if legalTransformation == "identity" {
 		tr := transformations.IdentityT{}
 		fmt.Println("[Camera] Starting Identity Prover")

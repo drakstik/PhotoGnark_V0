@@ -13,7 +13,7 @@ import (
 
 const (
 	// The size of an image in pixels.
-	N = 8 // Remember an image will have N*N pixels
+	N = 14 // Remember an image will have N*N pixels
 )
 
 type Pixel struct {
@@ -27,7 +27,7 @@ type Image struct {
 	Metadata map[string]interface{}
 }
 
-// Can create a "white" or "black" image
+// Can create a "white" or "black" or "random" image
 func NewImage(flag string) (Image, error) {
 	newImage := Image{
 		Pixels:   [N * N]Pixel{},
@@ -41,6 +41,10 @@ func NewImage(flag string) (Image, error) {
 	// For each pixel
 	for row := 0; row < N; row++ {
 		for col := 0; col < N; col++ {
+			if flag == "" {
+				return newImage, nil
+			}
+
 			if flag == "black" {
 
 				// Translate the 2D location (x,y) into a 1D index.
@@ -95,32 +99,20 @@ func (pixel Pixel) PackRGB() uint32 {
 	return uint32(pixel.R)<<16 | uint32(pixel.G)<<8 | uint32(pixel.B)
 }
 
-/* Start of Interface functions. */
-
-// Get the pixel at location (x,y),
-// where (x,y) is a pixel location in the 2D representation [N*N] array of pixels.
-func (img Image) GetPixel(col, row int) Pixel {
-	// Translate the 2D location (x,y) into a 1D index.
-	idx := row*N + col
-
-	return img.Pixels[idx]
-}
-
 // PrintImage outputs the image in a 16x16 grid format.
 func (img *Image) PrintImage() {
 	// For each row
 	for row := 0; row < N; row++ {
 		// Print all indices in the row
 		for col := 0; col < N; col++ {
-			pixel := img.GetPixel(col, row)
+			currentIdx := row*N + col
+			pixel := img.Pixels[currentIdx]
 			// Print pixel in (R, G, B) format
 			fmt.Printf("(%3d, %3d, %3d) ", pixel.R, pixel.G, pixel.B)
 		}
 		fmt.Println() // New line after each row
 	}
 }
-
-/* End of Interface functions. */
 
 // Return the JSON encoded version of an image as bytes.
 func (img Image) ToByte() []byte {
@@ -161,8 +153,10 @@ func (img Image) ToFrImage() FrImage {
 		// For each col index in the row
 		for col := 0; col < N; col++ {
 
+			currentIdx := row*N + col
+
 			// Get RGBPixel
-			pixel := img.GetPixel(col, row)
+			pixel := img.Pixels[currentIdx]
 
 			// Set RGBPixel as an FrPixel in the newly created FrImage
 			frImage.SetPixel(col, row, pixel)
